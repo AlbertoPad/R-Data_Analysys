@@ -1,0 +1,1079 @@
+---
+title: "Proyecto_estadistica"
+author: "Marco, helen, Alberto"
+date: "2022-12-20"
+output: html_document
+---
+
+---
+title: "Proyecto Estadistica"
+author: "Marco, helen, Alberto"
+date: "2022-12-16"
+output: html_document
+---
+INTRODUCCION
+
+1-Instalar Librerias.
+
+2-Leer Datos y Sustituir Vacios.
+
+3-Resumen Datos.
+
+4-Transformar Fecha y Factores.
+
+5-Limpiar filas duplicadas.
+
+  Eliminar Valores atipicos
+
+6-Separacion de hipotesis.
+  
+  Correlación de varaviables de cada hipotesis.
+  
+7-Gráficas Destacables.
+
+8-Conclusiones.
+
+
+1-LIBRERIAS
+
+```{r}
+library(dplyr)
+    ##install.packages("dplyr")
+library(graphics)
+library(ggplot2)
+library(tidyverse)
+library("gplots")
+library(reshape2)
+
+# Instalar y cargar el paquete fechas
+    ##installed.packages("lubricate")
+
+library("lubridate")
+
+# Instalar y cargar el paquete outliers
+    ##install.packages("outliers")
+
+library(outliers)
+```
+
+• DIRECTORIO DE TRABAJO
+
+```{r}
+getwd()
+setwd("/Users/macka/GitHub/R/Proyecto_Estadistica")
+```
+
+2-LECTURA DE DATOS Y SUSTITUCIÓN DE VALORES VACÍOS->NA
+
+```{r setup, include=FALSE}
+#LECTURA
+df_trans_original<-read.csv("Fraud.csv",stringsAsFactors=T,fill = T)
+
+#SUSTITUCIÓN
+df_trans_original[df_trans_original == ''] <- NA
+```
+
+3-RESUMEN
+
+```{r}
+# RESUMEN PRELIMINAR DATOS
+df_trans_original
+summary(df_trans_original)
+str(df_trans_original)
+dim(df_trans_original)
+
+```
+
+4-TRANSFORMAR TIPOS DATOS
+
+```{r}
+# LIBRERIA LUBDRICATE
+# FECHA
+df_trans_original$FECHA<-ymd(df_trans_original$FECHA)
+df_trans_original$FECHA_VIN<-ymd(df_trans_original$FECHA_VIN)
+
+# FACTOR
+df_trans_original$id<-as.factor(df_trans_original$id) 
+df_trans_original$OFICINA_VIN<-as.factor(df_trans_original$OFICINA_VIN)
+df_trans_original$HORA_AUX<-as.factor(df_trans_original$HORA_AUX)
+df_trans_original$FRAUDE<-as.factor(df_trans_original$FRAUDE)
+
+# COMPROBAR CAMBIOS
+str(df_trans_original)
+```
+
+5-ELIMINAR FILAS DUPLICADAS TOTALMENTE, COLUMNAS POCO UTILES Y NAN`s
+
+```{r}
+# ELIMINAR FILAS
+df_trans_nodupli<-df_trans_original %>% distinct()
+
+
+#Quitar filas con pocos NaN
+df_trans_nona<-df_trans_nodupli
+df_trans_clean <- df_trans_nona[!is.na(df_trans_nona$FECHA_VIN), ] # 24 filas
+df_trans_clean <- df_trans_clean[!is.na(df_trans_clean$SEXO), ] # 55 filas
+
+# CAMBIAR NAN y 1 POR CEROS EN DISTANCIAS
+df_trans_clean$Dist_Sum_INTER[df_trans_clean$NROPAISES == 1] <- 0
+df_trans_clean$Dist_Mean_INTER[df_trans_clean$NROPAISES == 1] <- 0
+df_trans_clean$Dist_Max_INTER[df_trans_clean$NROPAISES == 1] <- 0
+df_trans_clean$Dist_sum_NAL[df_trans_clean$NROCIUDADES == 1] <- 0
+df_trans_clean$Dist_Mean_NAL[df_trans_clean$NROCIUDADES == 1] <- 0
+
+# COMPROBACIÓN
+summary(df_trans_clean)
+dim(df_trans_clean)
+```
+
+
+
+6.0-COMPROBAR LA DISTRIBUCIÓN DE LOS DATOS DE CADA COLUMNA 
+
+(ANTES OUTLIERS)
+
+
+-Para utilizar la función **shapiro.test()**, simplemente proporciona el conjunto de datos como argumento. La función devolverá un objeto de tipo htest con información sobre el resultado del test de Shapiro-Wilk, incluyendo el valor p y el valor crítico. Si el valor p es mayor que el valor crítico, entonces se acepta la hipótesis de que los datos siguen una **distribución normal**.
+
+El test de Anderson-Darling se basa en la comparación de la función de distribución empírica de los datos con la función de distribución teórica de una distribución normal. El test de Kolmogorov-Smirnov, por otro lado, se basa en la comparación de la función de distribución empírica de los datos con la función de distribución teórica de una distribución normal. El test de Shapiro-Wilk se basa en el orden de los datos y en la correlación entre los datos ordenados y una distribución normal teórica.
+
+En general, el test de Anderson-Darling es más preciso para conjuntos de datos grandes, mientras que el test de Shapiro-Wilk es más preciso para conjuntos de datos pequeños. El test de Kolmogorov-Smirnov es aplicable para conjuntos de datos de cualquier tamaño, aunque es más preciso para conjuntos de datos grandes.
+
+                  resultado <- shapiro.test(datos)
+                  resultado <- kolmogorov.test(datos)
+                  
+                  # Instalar y cargar el paquete nortest
+                  install.packages("nortest")
+                  library(nortest)
+ANDERSON                  
+                  # Realizar el test de Anderson-Darling
+                  resultado <- ad.test(df$datos)
+                  resultado
+                  
+-como la función best.fit.distr(): Luego, puedes llamar a la función y proporcionar el conjunto de datos como argumento, así como una lista de distribuciones que se quieren probar. La función devolverá un objeto de tipo fitdist con información sobre la distribución que mejor se ajusta a los datos.
+                  
+                  # Instalar y cargar el paquete fitdistrplus
+                  install.packages("fitdistrplus")
+                  library(fitdistrplus)
+                  
+                  # Determinar la distribución que mejor se ajusta a los datos
+                  resultado <- best.fit.distr(df$datos, distrs=c("norm", "lognorm", "weibull"))
+                  resultado
+library(univariateML)-https://rpubs.com/Joaquin_AR/589853
+Se comparan únicamente las distribuciones con un dominio [0, +inf)
+comparacion_aic <- AIC(mlbetapr(datos$price),mlexp(datos$price),...
+                    mlinvgamma(datos$price),
+                    mlgamma(datos$price),
+                    mllnorm(datos$price),
+                    mlrayleigh(datos$price),
+                    mlinvgauss(datos$price),
+                    mlweibull(datos$price),
+                    mlinvweibull(datos$price),
+                    mllgamma(datos$price)
+                   )
+comparacion_aic %>% rownames_to_column(var = "distribucion") %>% arrange(AIC)
+
+  • SAPHIRO A LAS COLUMNAS NUMERICAS
+
+    El p-valor es una medida de la probabilidad de que los datos sigan una distribución normal. Si el p-valor es menor que un cierto nivel de significación (por ejemplo, 0.05), entonces se rechaza la hipótesis de que los datos sigan una distribución normal. Por otro lado, si el p-valor es mayor que el nivel de significación, entonces se acepta la hipótesis de que los datos sigan una distribución normal.
+      
+    El estadístico W es una medida de la bondad de ajuste de la distribución normal a los datos. Cuanto más cerca esté el valor de W de 1, más probable será que los datos sigan una distribución normal. Por otro lado, cuanto más alejado esté el valor de W de 1, menos probable será que los datos sigan una distribución normal.
+```{r}
+data_numeric <- select_if(df_trans_clean, is.numeric)
+resultados <- apply(data_numeric, 2, shapiro.test)
+resultados
+```
+
+  • OBSERVAR OUTLIERS
+
+```{r}
+summary(df_trans_clean)
+```
+  
+  • NUMERO DE OCURRENCIAS
+
+```{r}
+ for (col in names(df_trans_clean)) {
+   conteo <- table(df_trans_clean[,col])
+   graph_conteo<-barplot(conteo,main=col)
+   print(graph_conteo)
+ }
+
+```
+
+  • VALORES ATÍPICOS TOTALES
+
+```{r}
+for (col in names(df_trans_clean)){
+  boxplot(df_trans_clean[,col],outcol = "red",main=col)
+  }
+```
+
+  • VALORES ATÍPICOS DIVIDIDOS
+
+```{r}
+for (col in names(df_trans_clean)){
+  boxplot(df_trans_clean[,col] ~ df_trans_clean$FRAUDE, ylab =col,xlab = "FRAUDE" )
+  stripchart(df_trans_clean[,col] ~ df_trans_clean$FRAUDE, add = TRUE, vertical = TRUE,
+           method = "jitter", col = 3:4, pch = 20)
+par(mfrow = c(1, 1))
+}
+
+
+```
+
+  • SEPERACIÓN DE DF PARA HIPÓTESIS
+
+```{r}
+df_fraude<-df_trans_clean[df_trans_clean$FRAUDE == 1,]
+df_no_fraude<-df_trans_clean[df_trans_clean$FRAUDE == 0,]
+```
+
+```{r}
+ for (col in names(df_fraude)) {
+   conteo <- table(df_fraude[,col])
+   graph_conteo<-barplot(conteo,main=col)
+   print(graph_conteo)
+ }
+```
+  
+  • CORRELACION DE FRAUDE
+  
+```{r}
+library(reshape2)
+
+matrix2<-round(cor(select_if(df_fraude, is.numeric),use="complete.obs",method="pearson"),2)
+melted_cormat <- melt(matrix2)
+ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()
+
+# Get lower triangle of the correlation matrix
+  get_lower_tri<-function(matrix2){
+    matrix2[upper.tri(matrix2)] <- NA
+    return(matrix2)
+  }
+  # Get upper triangle of the correlation matrix
+  get_upper_tri <- function(matrix2){
+    matrix2[lower.tri(matrix2)]<- NA
+    return(matrix2)
+  }
+  
+  upper_tri <- get_upper_tri(matrix2)
+  # Melt the correlation matrix
+library(reshape2)
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# Heatmap
+library(ggplot2)
+ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+   name="Pearson\nCorrelation") +
+  theme_minimal()+ 
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 8, hjust = 1))+
+ coord_fixed()
+
+reorder_cormat <- function(matrix2){
+# Use correlation between variables as distance
+dd <- as.dist((1-matrix2)/2)
+hc <- hclust(dd)
+matrix2 <-matrix2[hc$order, hc$order]
+}
+
+# Reorder the correlation matrix
+matrix2 <- reorder_cormat(matrix2)
+upper_tri <- get_upper_tri(matrix2)
+# Melt the correlation matrix
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# Create a ggheatmap
+ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+    name="Pearson\nCorrelation") +
+  theme_minimal()+ # minimal theme
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 8, hjust = 1))+
+ coord_fixed()
+# Print the heatmap
+print(ggheatmap)
+
+ggheatmap + 
+geom_text(aes(Var2, Var1, label = value), color = "black", size = 2) +
+theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.grid.major = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  axis.ticks = element_blank(),
+  legend.justification = c(1, 0),
+  legend.position = c(0.6, 0.7),
+  legend.direction = "horizontal")+
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                title.position = "top", title.hjust = 0.5))
+```
+ 
+ • CORRELACION DE FRAUDE SOLO CON LAS DISTANCIAS
+  
+```{r}
+library(reshape2)
+
+distan=c("Dist_Mean_NAL","Dist_Mean_INTER","NROPAISES","NROCIUDADES","DIASEM","INGRESOS")
+matrix2<-round(cor(df_fraude[,distan],use="complete.obs",method="pearson"),2)
+melted_cormat <- melt(matrix2)
+ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()
+
+# Get lower triangle of the correlation matrix
+  get_lower_tri<-function(matrix2){
+    matrix2[upper.tri(matrix2)] <- NA
+    return(matrix2)
+  }
+  # Get upper triangle of the correlation matrix
+  get_upper_tri <- function(matrix2){
+    matrix2[lower.tri(matrix2)]<- NA
+    return(matrix2)
+  }
+  
+  upper_tri <- get_upper_tri(matrix2)
+  # Melt the correlation matrix
+library(reshape2)
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# Heatmap
+library(ggplot2)
+ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+   name="Pearson\nCorrelation") +
+  theme_minimal()+ 
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 8, hjust = 1))+
+ coord_fixed()
+
+reorder_cormat <- function(matrix2){
+# Use correlation between variables as distance
+dd <- as.dist((1-matrix2)/2)
+hc <- hclust(dd)
+matrix2 <-matrix2[hc$order, hc$order]
+}
+
+# Reorder the correlation matrix
+matrix2 <- reorder_cormat(matrix2)
+upper_tri <- get_upper_tri(matrix2)
+# Melt the correlation matrix
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# Create a ggheatmap
+ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+    name="Pearson\nCorrelation") +
+  theme_minimal()+ # minimal theme
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 8, hjust = 1))+
+ coord_fixed()
+# Print the heatmap
+print(ggheatmap)
+
+ggheatmap + 
+geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
+theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.grid.major = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  axis.ticks = element_blank(),
+  legend.justification = c(1, 0),
+  legend.position = c(0.6, 0.7),
+  legend.direction = "horizontal")+
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                title.position = "top", title.hjust = 0.5))
+```
+
+  • CORRELACION DE NO FRAUDE
+  
+```{r}
+library(reshape2)
+
+matrix2<-round(cor(select_if(df_no_fraude, is.numeric),use="complete.obs",method="pearson"),2)
+melted_cormat <- melt(matrix2)
+ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()
+
+# Get lower triangle of the correlation matrix
+  get_lower_tri<-function(matrix2){
+    matrix2[upper.tri(matrix2)] <- NA
+    return(matrix2)
+  }
+  # Get upper triangle of the correlation matrix
+  get_upper_tri <- function(matrix2){
+    matrix2[lower.tri(matrix2)]<- NA
+    return(matrix2)
+  }
+  
+  upper_tri <- get_upper_tri(matrix2)
+  # Melt the correlation matrix
+library(reshape2)
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# Heatmap
+library(ggplot2)
+ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+   name="Pearson\nCorrelation") +
+  theme_minimal()+ 
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 8, hjust = 1))+
+ coord_fixed()
+
+reorder_cormat <- function(matrix2){
+# Use correlation between variables as distance
+dd <- as.dist((1-matrix2)/2)
+hc <- hclust(dd)
+matrix2 <-matrix2[hc$order, hc$order]
+}
+
+# Reorder the correlation matrix
+matrix2 <- reorder_cormat(matrix2)
+upper_tri <- get_upper_tri(matrix2)
+# Melt the correlation matrix
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# Create a ggheatmap
+ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+    name="Pearson\nCorrelation") +
+  theme_minimal()+ # minimal theme
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 8, hjust = 1))+
+ coord_fixed()
+# Print the heatmap
+print(ggheatmap)
+
+ggheatmap + 
+geom_text(aes(Var2, Var1, label = value), color = "black", size = 2) +
+theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.grid.major = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  axis.ticks = element_blank(),
+  legend.justification = c(1, 0),
+  legend.position = c(0.6, 0.7),
+  legend.direction = "horizontal")+
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                title.position = "top", title.hjust = 0.5))
+```
+```{r}
+library(reshape2)
+
+distan=c("Dist_Mean_NAL","Dist_Mean_INTER","NROPAISES","NROCIUDADES","DIAMES","INGRESOS")
+matrix2<-round(cor(df_no_fraude[,distan],use="complete.obs",method="pearson"),2)
+melted_cormat <- melt(matrix2)
+ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()
+
+# Get lower triangle of the correlation matrix
+  get_lower_tri<-function(matrix2){
+    matrix2[upper.tri(matrix2)] <- NA
+    return(matrix2)
+  }
+  # Get upper triangle of the correlation matrix
+  get_upper_tri <- function(matrix2){
+    matrix2[lower.tri(matrix2)]<- NA
+    return(matrix2)
+  }
+  
+  upper_tri <- get_upper_tri(matrix2)
+  # Melt the correlation matrix
+library(reshape2)
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# Heatmap
+library(ggplot2)
+ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+   name="Pearson\nCorrelation") +
+  theme_minimal()+ 
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 8, hjust = 1))+
+ coord_fixed()
+
+reorder_cormat <- function(matrix2){
+# Use correlation between variables as distance
+dd <- as.dist((1-matrix2)/2)
+hc <- hclust(dd)
+matrix2 <-matrix2[hc$order, hc$order]
+}
+
+# Reorder the correlation matrix
+matrix2 <- reorder_cormat(matrix2)
+upper_tri <- get_upper_tri(matrix2)
+# Melt the correlation matrix
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# Create a ggheatmap
+ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+    name="Pearson\nCorrelation") +
+  theme_minimal()+ # minimal theme
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 8, hjust = 1))+
+ coord_fixed()
+# Print the heatmap
+print(ggheatmap)
+
+ggheatmap + 
+geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
+theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.grid.major = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  axis.ticks = element_blank(),
+  legend.justification = c(1, 0),
+  legend.position = c(0.6, 0.7),
+  legend.direction = "horizontal")+
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                title.position = "top", title.hjust = 0.5))
+```
+6-ELIMINAR VALORES ATIPICOS & OUTLIERS (ELEGIR DONDE APLICAR)
+
+-Rango intercuartil (IQR): El rango intercuartil (IQR) es la diferencia entre el cuartil superior (Q3 75%) y el cuartil inferior (Q1 25%). Los valores que están por debajo de Q1 - 1.5 * IQR o por encima de Q3 + 1.5 * IQR se consideran outliers.
+
+                  outliers <- boxplot.stats(df_trans_nodupli$EDAD)$out
+                  df_trans_nodupli <- subset(df_trans_nodupli, !EDAD %in% outliers)
+
+-Media y desviación estándar: Los valores que están a más de 3 desviaciones estándar por encima o por debajo de la media se consideran outliers.
+
+                  outliers <- outlier(datos)
+                  datos_sin_outliers <- datos[-outliers]
+                 
+                  #OTRA FORMA   
+                  install.packages("inference")
+                  library(inference)
+                  # Detectar y eliminar valores atípicos
+                  datos_sin_outliers <- mean_cl_normal(datos)
+
+
+-Métodos basados en la distribución: Se pueden utilizar métodos basados en la distribución de los datos, como el test de Grubbs, para detectar outliers.  Es un método de detección de valores atípicos que se basa en la hipótesis nula de que los datos siguen una distribución normal.
+
+                  # Realizar el test de Grubbs
+                  resultado <- grubbs.test(datos)
+                  
+                  
+```{r}
+dim(df_trans_clean)
+
+df_trans_clean_out<-df_trans_clean
+outliers <- boxplot.stats(df_trans_clean_out$Dist_Mean_NAL)$out
+df_trans_clean_out <- subset(df_trans_clean, !Dist_Mean_NAL %in% outliers)
+
+outliers <- boxplot.stats(df_trans_clean_out$Dist_Mean_INTER)$out
+df_trans_clean_out <- subset(df_trans_clean, !Dist_Mean_INTER %in% outliers)
+
+outliers <- boxplot.stats(df_trans_clean_out$INGRESOS)$out
+df_trans_clean_out <- subset(df_trans_clean, !INGRESOS %in% outliers)
+
+dim(df_trans_clean_out)
+```
+
+6-2 DESPUES asdasdqwe
+
+
+
+  • SAPHIRO A LAS COLUMNAS NUMERICAS
+    El p-valor es una medida de la probabilidad de que los datos sigan una distribución normal. Si el p-valor es menor que un cierto nivel de significación (por ejemplo, 0.05), entonces se rechaza la hipótesis de que los datos sigan una distribución normal. Por otro lado, si el p-valor es mayor que el nivel de significación, entonces se acepta la hipótesis de que los datos sigan una distribución normal.
+    
+    El estadístico W es una medida de la bondad de ajuste de la distribución normal a los datos. Cuanto más cerca esté el valor de W de 1, más probable será que los datos sigan una distribución normal. Por otro lado, cuanto más alejado esté el valor de W de 1, menos probable será que los datos sigan una distribución normal.
+    
+```{r}
+data_numeric2 <- select_if(df_trans_clean_out, is.numeric)
+resultados2 <- apply(data_numeric2, 2, shapiro.test)
+resultados2
+```
+
+• NUMERO DE OCURRENCIAS
+
+```{r}
+for (col in names(df_trans_clean_out)) {
+  conteo <- table(df_trans_clean_out[,col])
+  graph_conteo<-barplot(conteo,main=col)
+  print(graph_conteo)
+}
+```
+
+• VALORES ATÍPICOS DIVIDIDOS
+
+```{r}
+for (col in names(df_trans_clean_out)){
+  boxplot(df_trans_clean_out[,col] ~ df_trans_clean_out$FRAUDE, ylab =col,xlab = "FRAUDE" )
+  stripchart(df_trans_clean_out[,col] ~ df_trans_clean_out$FRAUDE, add = TRUE, vertical = TRUE,
+           method = "jitter", col = 3:4, pch = 20)
+par(mfrow = c(1, 1))
+}
+```
+
+• SEPERACIÓN DE DF PARA HIPÓTESIS
+
+```{r}
+df_fraude<-df_trans_clean_out[df_trans_clean_out$FRAUDE == 1,]
+df_no_fraude<-df_trans_clean_out[df_trans_clean_out$FRAUDE == 0,]
+
+```
+
+• CORRELACION DE FRAUDE
+
+```{r}
+library(reshape2)
+
+matrix2<-round(cor(select_if(df_fraude, is.numeric),use="complete.obs",method="pearson"),2)
+melted_cormat <- melt(matrix2)
+ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()
+
+# Get lower triangle of the correlation matrix
+  get_lower_tri<-function(matrix2){
+    matrix2[upper.tri(matrix2)] <- NA
+    return(matrix2)
+  }
+  # Get upper triangle of the correlation matrix
+  get_upper_tri <- function(matrix2){
+    matrix2[lower.tri(matrix2)]<- NA
+    return(matrix2)
+  }
+  
+  upper_tri <- get_upper_tri(matrix2)
+  # Melt the correlation matrix
+library(reshape2)
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# Heatmap
+library(ggplot2)
+ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+   name="Pearson\nCorrelation") +
+  theme_minimal()+ 
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 8, hjust = 1))+
+ coord_fixed()
+
+reorder_cormat <- function(matrix2){
+# Use correlation between variables as distance
+dd <- as.dist((1-matrix2)/2)
+hc <- hclust(dd)
+matrix2 <-matrix2[hc$order, hc$order]
+}
+
+# Reorder the correlation matrix
+matrix2 <- reorder_cormat(matrix2)
+upper_tri <- get_upper_tri(matrix2)
+# Melt the correlation matrix
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# Create a ggheatmap
+ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+    name="Pearson\nCorrelation") +
+  theme_minimal()+ # minimal theme
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 8, hjust = 1))+
+ coord_fixed()
+# Print the heatmap
+print(ggheatmap)
+
+ggheatmap + 
+geom_text(aes(Var2, Var1, label = value), color = "black", size = 2) +
+theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.grid.major = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  axis.ticks = element_blank(),
+  legend.justification = c(1, 0),
+  legend.position = c(0.6, 0.7),
+  legend.direction = "horizontal")+
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                title.position = "top", title.hjust = 0.5))
+```
+
+ • CORRELACION DE FRAUDE SOLO CON LAS DISTANCIAS
+  
+```{r}
+library(reshape2)
+
+matrix2<-round(cor(df_fraude[,distan],use="complete.obs",method="pearson"),2)
+melted_cormat <- melt(matrix2)
+ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()
+
+# Get lower triangle of the correlation matrix
+  get_lower_tri<-function(matrix2){
+    matrix2[upper.tri(matrix2)] <- NA
+    return(matrix2)
+  }
+  # Get upper triangle of the correlation matrix
+  get_upper_tri <- function(matrix2){
+    matrix2[lower.tri(matrix2)]<- NA
+    return(matrix2)
+  }
+  
+  upper_tri <- get_upper_tri(matrix2)
+  # Melt the correlation matrix
+library(reshape2)
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# Heatmap
+library(ggplot2)
+ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+   name="Pearson\nCorrelation") +
+  theme_minimal()+ 
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 8, hjust = 1))+
+ coord_fixed()
+
+reorder_cormat <- function(matrix2){
+# Use correlation between variables as distance
+dd <- as.dist((1-matrix2)/2)
+hc <- hclust(dd)
+matrix2 <-matrix2[hc$order, hc$order]
+}
+
+# Reorder the correlation matrix
+matrix2 <- reorder_cormat(matrix2)
+upper_tri <- get_upper_tri(matrix2)
+# Melt the correlation matrix
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# Create a ggheatmap
+ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+    name="Pearson\nCorrelation") +
+  theme_minimal()+ # minimal theme
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 8, hjust = 1))+
+ coord_fixed()
+# Print the heatmap
+print(ggheatmap)
+
+ggheatmap + 
+geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
+theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.grid.major = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  axis.ticks = element_blank(),
+  legend.justification = c(1, 0),
+  legend.position = c(0.6, 0.7),
+  legend.direction = "horizontal")+
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                title.position = "top", title.hjust = 0.5))
+```
+
+• CORRELACION DE NO FRAUDE
+
+```{r}
+library(reshape2)
+
+matrix2<-round(cor(select_if(df_no_fraude, is.numeric),use="complete.obs",method="pearson"),2)
+melted_cormat <- melt(matrix2)
+ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()
+
+# Get lower triangle of the correlation matrix
+  get_lower_tri<-function(matrix2){
+    matrix2[upper.tri(matrix2)] <- NA
+    return(matrix2)
+  }
+  # Get upper triangle of the correlation matrix
+  get_upper_tri <- function(matrix2){
+    matrix2[lower.tri(matrix2)]<- NA
+    return(matrix2)
+  }
+  
+  upper_tri <- get_upper_tri(matrix2)
+  # Melt the correlation matrix
+library(reshape2)
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# Heatmap
+library(ggplot2)
+ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+   name="Pearson\nCorrelation") +
+  theme_minimal()+ 
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 8, hjust = 1))+
+ coord_fixed()
+
+reorder_cormat <- function(matrix2){
+# Use correlation between variables as distance
+dd <- as.dist((1-matrix2)/2)
+hc <- hclust(dd)
+matrix2 <-matrix2[hc$order, hc$order]
+}
+
+# Reorder the correlation matrix
+matrix2 <- reorder_cormat(matrix2)
+upper_tri <- get_upper_tri(matrix2)
+# Melt the correlation matrix
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# Create a ggheatmap
+ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+    name="Pearson\nCorrelation") +
+  theme_minimal()+ # minimal theme
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 8, hjust = 1))+
+ coord_fixed()
+# Print the heatmap
+print(ggheatmap)
+
+ggheatmap + 
+geom_text(aes(Var2, Var1, label = value), color = "black", size = 2) +
+theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.grid.major = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  axis.ticks = element_blank(),
+  legend.justification = c(1, 0),
+  legend.position = c(0.6, 0.7),
+  legend.direction = "horizontal")+
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                title.position = "top", title.hjust = 0.5))
+```
+```{r}
+library(reshape2)
+
+matrix2<-round(cor(df_no_fraude[,distan],use="complete.obs",method="pearson"),2)
+melted_cormat <- melt(matrix2)
+ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()
+
+# Get lower triangle of the correlation matrix
+  get_lower_tri<-function(matrix2){
+    matrix2[upper.tri(matrix2)] <- NA
+    return(matrix2)
+  }
+  # Get upper triangle of the correlation matrix
+  get_upper_tri <- function(matrix2){
+    matrix2[lower.tri(matrix2)]<- NA
+    return(matrix2)
+  }
+  
+  upper_tri <- get_upper_tri(matrix2)
+  # Melt the correlation matrix
+library(reshape2)
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# Heatmap
+library(ggplot2)
+ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+   name="Pearson\nCorrelation") +
+  theme_minimal()+ 
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 8, hjust = 1))+
+ coord_fixed()
+
+reorder_cormat <- function(matrix2){
+# Use correlation between variables as distance
+dd <- as.dist((1-matrix2)/2)
+hc <- hclust(dd)
+matrix2 <-matrix2[hc$order, hc$order]
+}
+
+# Reorder the correlation matrix
+matrix2 <- reorder_cormat(matrix2)
+upper_tri <- get_upper_tri(matrix2)
+# Melt the correlation matrix
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# Create a ggheatmap
+ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+    name="Pearson\nCorrelation") +
+  theme_minimal()+ # minimal theme
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 8, hjust = 1))+
+ coord_fixed()
+# Print the heatmap
+print(ggheatmap)
+
+ggheatmap + 
+geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
+theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.grid.major = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  axis.ticks = element_blank(),
+  legend.justification = c(1, 0),
+  legend.position = c(0.6, 0.7),
+  legend.direction = "horizontal")+
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                title.position = "top", title.hjust = 0.5))
+```
+
+7-GRAFICAS
+
+  -df_trans_clean   --> dataframe TOTAL
+  
+  -df_fraude        --> dataframe Fraude
+  
+  -df_no_fraude     --> dataframe No fraude
+
+Ocrrencias en las oficinas
+```{r}
+
+plot(df_fraude$Dist_max_NAL,df_fraude$Dist_sum_NAL, pch = 19, col = "red")
+abline(lm(df_fraude$Dist_sum_NAL ~ df_fraude$Dist_max_NAL), col = "orange", lwd = 3)
+plot(df_no_fraude$Dist_max_NAL,df_no_fraude$Dist_sum_NAL, pch = 19, col = "black")
+abline(lm(df_no_fraude$Dist_sum_NAL ~ df_no_fraude$Dist_max_NAL), col = "orange", lwd = 3)
+
+plot(df_fraude$EGRESOS,df_fraude$INGRESOS, pch = 19, col = "red")
+abline(lm(df_fraude$INGRESOS ~ df_fraude$EGRESOS), col = "orange", lwd = 3)
+plot(df_no_fraude$EGRESOS,df_no_fraude$INGRESOS, pch = 19, col = "black")
+abline(lm(df_no_fraude$INGRESOS ~ df_no_fraude$EGRESOS), col = "orange", lwd = 3)
+
+plot(df_fraude$Dist_Mean_INTER,df_fraude$Dist_Max_INTER, pch = 19, col = "red")
+abline(lm(df_fraude$Dist_Max_INTER ~ df_fraude$Dist_Mean_INTER), col = "orange", lwd = 3)
+plot(df_no_fraude$Dist_Mean_INTER,df_no_fraude$Dist_Max_INTER, pch = 19, col = "black")
+abline(lm(df_no_fraude$Dist_Max_INTER ~ df_no_fraude$Dist_Mean_INTER), col = "orange", lwd = 3)
+
+plot(df_no_fraude$DIAMES,df_no_fraude$Dist_Mean_NAL, pch = 19, col = "red")
+abline(lm(df_no_fraude$Dist_Mean_NAL ~ df_no_fraude$DIAMES), col = "orange", lwd = 3)
+
+```
+
+```{r}
+porcentaje<-sum(df_fraude$Dist_HOY > df_fraude$Dist_Mean_NAL & df_fraude$Dist_Mean_NAL!=0  )/nrow(df_fraude)
+porcentaje
+
+porcentaje2<-sum(df_fraude$Dist_HOY > df_fraude$Dist_Mean_INTER & df_fraude$Dist_Mean_INTER!=0)/nrow(df_fraude)
+porcentaje2
+
+porcentaje3<-sum(df_no_fraude$Dist_HOY > df_no_fraude$Dist_Mean_NAL & df_no_fraude$Dist_Mean_NAL!=0)/nrow(df_no_fraude)
+porcentaje3
+
+porcentaje4<-sum(df_no_fraude$Dist_HOY > df_no_fraude$Dist_Mean_INTER & df_no_fraude$Dist_Mean_INTER!=0)/nrow(df_no_fraude)
+porcentaje4
+
+```
+
+*********************************************************************************ADICIONAL*******************************************************************************
+
+Para saber cuales son las columnas más importantes de un dataframe en R, hay varias opciones que puedes considerar. Algunas de ellas son:
+
+Utilizar la función cor() para calcular la correlación entre las distintas columnas del dataframe y la columna objetivo. Las columnas con una correlación más alta podrían ser más importantes.
+
+Utilizar un algoritmo de selección de características, como el método Boruta o Random Forest, que te ayudará a identificar qué columnas son más importantes para predecir el resultado de un modelo de aprendizaje automático.
+
+Utilizar técnicas de visualización, como histogramas o gráficos de caja, para identificar qué columnas tienen una mayor variabilidad o dispersión de datos.
+
+Utilizar métricas de importancia de características, como el método permutation importance o el mean decrease accuracy, para evaluar qué tanto afecta a la precisión del modelo el eliminar cada una de las columnas.
+
+
+SUSTITUIR VALORES NAN POR MEDIA O APROXIMACIÓN
+
+En algunos casos, puede ser apropiado reemplazar los valores NA con la media si se sabe que la distribución de los datos es simétrica y no tiene outliers (valores extremos). Esto se debe a que la media es una medida de tendencia central robusta que no se ve afectada por los valores extremos. Sin embargo, si la distribución de los datos es sesgada o tiene outliers, la media puede no ser una buena medida de tendencia central y puede no ser apropiado reemplazar los valores NA con la media.
+
+En otros casos, puede ser apropiado reemplazar los valores NA con una aproximación, como la interpolación. Esto puede ser útil si se sabe que los datos siguen un patrón o tendencia y se quiere preservar ese patrón o tendencia al reemplazar los valores NA. Sin embargo, si no hay un patrón o tendencia evidente en los datos, la interpolación puede no ser apropiada.
+
+En resumen, la elección de si reemplazar los valores NA con la media o con una aproximación depende del contexto y de la naturaleza de los datos. Es importante evaluar los datos y considerar cómo el reemplazo de los valores NA puede afectar al análisis y a las conclusiones.
+Considerar:
+La distribución de los datos: Si los datos siguen una distribución normal o similar, la media puede ser una buena opción para sustituir los valores NA. Sin embargo, si los datos siguen una distribución más asimétrica o con valores atípicos, la media puede no ser una medida representativa y puede ser mejor utilizar una aproximación.
+
+La cantidad de datos disponibles: Si hay una gran cantidad de datos disponibles, la media puede ser una buena opción para sustituir los valores NA, ya que se trata de una medida que tiene en cuenta todos los datos. Sin embargo, si hay pocos datos disponibles, la media puede ser menos precisa y puede ser mejor utilizar una aproximación.
+
+La importancia de la precisión: En algunos casos, es importante obtener una medida lo más precisa posible de los datos. En estos casos, puede ser mejor utilizar una aproximación para sustituir los valores NA, ya que permite interpolar los valores faltantes en función de los datos disponibles.
+```{r}
+# library(tidyverse)
+# summary(df_trans_nodupli)
+# 
+# for (col in names(df_trans_nodupli[,c("EDAD","INGRESOS","EGRESOS","Dist_Sum_INTER","Dist_Mean_INTER","Dist_Max_INTER","Dist_Mean_NAL")])) {
+# 
+#   # Seleccionar solo los datos de la columna que no son NA
+#   datos_sin_na <- df_trans_nodupli %>% select(all_of(col)) %>% drop_na()
+# 
+#   # Calcular la media y la desviación estándar de los datos sin NA
+#   media <- mean(datos_sin_na[[col]])
+#   desv_est <- sd(datos_sin_na[[col]])
+# 
+#   # Si la desviación estándar es menor que la media, utilizar la media para sustituir los NA
+#   # Si no, utilizar una aproximación
+#   if (desv_est < media) {
+#   df_trans_nodupli[[col]] <- ifelse(is.na(df_trans_nodupli[[col]]), media, df_trans_nodupli[[col]])
+#   } else {
+#     aproximacion <- approx(datos_sin_na[[col]])
+# 
+#     df_trans_nodupli[[col]] <- ifelse(is.na(df_trans_nodupli[[col]]), aproximacion[[col]], df_trans_nodupli[[col]])
+#   }
+# }
+# # summary(df_trans_nodupli)
+```
+
+
+
+VALIDAR DATOS
+Revisar los tipos de datos de cada columna: puedes usar la función str() para verificar el tipo de datos de cada columna en tu conjunto de datos.
+
+Verificar la existencia de valores faltantes: puedes usar la función is.na() para verificar si hay valores faltantes en tu conjunto de datos.
+
+Verificar la consistencia de los datos: puedes verificar si hay valores que no cumplen con ciertas condiciones o que no son coherentes con el resto de los datos. Por ejemplo, puedes verificar que todos los valores de una columna sean mayores que cero o que todos los valores de una columna estén en un rango específico.
+
+Utilizar paquetes de validación de datos: hay varios paquetes de R que puedes utilizar para validar tus datos de manera más automatizada, como el paquete validate o el paquete data.table.
+
+CODIGO
+Para utilizar la función validate(), primero debes tener un conjunto de datos de entrenamiento y un conjunto de datos de prueba. Luego, debes entrenar un modelo en el conjunto de datos de entrenamiento y utilizar la función validate() para evaluar el rendimiento del modelo en el conjunto de datos de prueba.En este ejemplo, se entrena un modelo de regresión lineal en el conjunto de datos de entrenamiento y luego se evalúa el rendimiento del modelo en el conjunto de datos de prueba utilizando la función validate(). La función devuelve un objeto de tipo validation que contiene los resultados de la evaluación del modelo.
+
+La función validate() es especialmente útil cuando se quiere evaluar el rendimiento de un modelo en un conjunto de datos que no se ha utilizado para entrenar el modelo. Esto es importante ya que el rendimiento de un modelo puede ser diferente en datos que no se han utilizado para entrenar el modelo, lo que se conoce como "sobreajuste".
+```{r}
+# # Cargar la biblioteca caret
+# library(caret)
+# 
+# # Cargar los datos de entrenamiento y de prueba
+# train <- read.csv("train.csv")
+# test <- read.csv("test.csv")
+# 
+# # Dividir los datos de entrenamiento en un conjunto de entrenamiento y validación
+# set.seed(123)
+# train_ind <- createDataPartition(train$y, p = 0.8, list = FALSE)
+# train_data <- train[train_ind,]
+# valid_data <- train[-train_ind,]
+# 
+# # Entrenar un modelo de regresión lineal en el conjunto de entrenamiento
+# model <- lm(y ~ x1 + x2, data = train_data)
+# 
+# # Evaluar el rendimiento del modelo en el conjunto de datos de prueba utilizando la función validate()
+# results <- validate(model, test, metric = "RMSE")
+# 
+# # Mostrar los resultados
+# print(results)
+```
